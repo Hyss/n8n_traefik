@@ -1,0 +1,64 @@
+version: "3.8"
+
+networks:
+  web:
+    external: true
+  internal:
+    external: false
+
+services:
+  n8n:
+    image: n8nio/n8n
+    container_name: n8n
+    restart: unless-stopped
+    environment:
+      - N8N_HOST=${N8N_HOST:-n8n.example.com}
+      - N8N_PORT=5678
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_PROTOCOL=https
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_TEMPLATES_ENABLED=false
+      - WEBHOOK_URL=https://${N8N_HOST:-n8n.example.com}
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - web
+      - internal
+    #expose:
+    #  - "5678" # Exposes the port to other containers, but not the host
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.n8n.rule=Host(`${N8N_HOST:-n8n.example.com}`)"
+      - "traefik.http.routers.n8n.entrypoints=websecure"
+      - "traefik.http.routers.n8n.tls.certresolver=letsencrypt"
+      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+
+  traefik:
+    image: traefik:v2.10
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-your@email.com}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080" # Enables the dashboard
+    volumes:
+      - "/ect/traefik/acme:/etc/traefik/acme"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./letsencrypt:/letsencrypt"
+    networks:
+      - web
+
+volumes:
+  n8n_data:
+  letsencrypt:
