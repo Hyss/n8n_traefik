@@ -1,6 +1,6 @@
-*N8N with Traefik
+# N8N with Traefik
 
-**Setup
+## Setup
 To setup this project in production, first you need to copy the .env.example file as .env.
 
 cp .env.example .env
@@ -12,7 +12,7 @@ ACME_EMAIL=name@email.com
 ```
 These need to match your domain and have a valid email address for TTL certificate generation.
 
-**Start
+## Start
 After setup, to start n8n you need to start docker-compose by executing the following command in the current folder.
 ```
 docker-compose up -d
